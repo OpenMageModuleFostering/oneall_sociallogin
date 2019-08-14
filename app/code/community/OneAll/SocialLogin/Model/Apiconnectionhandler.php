@@ -23,6 +23,8 @@
  * http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
  *
  */
+
+//API connection handler dropdown
 class OneAll_SocialLogin_Model_Apiconnectionhandler
 {
 	public function toOptionArray ()

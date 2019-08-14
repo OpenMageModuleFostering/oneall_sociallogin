@@ -23,6 +23,8 @@
  * http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
  *
  */
+
+// Autodetects the API connection handler
 class OneAll_SocialLogin_Model_Apiautodetect
 {
 	public function toOptionArray ()
@@ -142,6 +144,3 @@ class OneAll_SocialLogin_Model_Apiautodetect
 HTML;
 	}
 }
-
-
-

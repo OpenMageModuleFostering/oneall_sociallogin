@@ -24,26 +24,25 @@
  *
  */
 
-// API connection port dropdown
-class OneAll_SocialLogin_Model_Apiconnectionport
+// API Connection Subdomain.
+class OneAll_SocialLogin_Model_Subdomain extends Mage_Core_Model_Config_Data
 {
-	public function toOptionArray ()
+	// Save the value to the database.
+	public function save ()
 	{
-		$helper = Mage::helper ('oneall_sociallogin');
+		// Read subdomain.
+		$subdomain = trim ($this->getValue ());
 
-		return array (
-			array (
-				'value' => '',
-				'label' => ''
-			),
-			array (
-				'value' => 443,
-				'label' => $helper->__ ('Communication via HTTPS on port 443')
-			),
-			array (
-				'value' => 80,
-				'label' => $helper->__ ('Communication via HTTP on port 80')
-			)
-		);
+		// Full domain entered.
+		if (preg_match ("/([a-z0-9\-]+)\.api\.oneall\.com/i", $subdomain, $matches))
+		{
+			$subdomain = $matches [1];
+		}
+
+		// Use new value.
+		$this->setValue ($subdomain);
+
+		// Save.
+		return parent::save ();
 	}
 }

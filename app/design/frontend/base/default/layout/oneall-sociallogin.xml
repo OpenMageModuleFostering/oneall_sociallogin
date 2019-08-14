@@ -1,6 +1,5 @@
 <?xml version="1.0"?>
 <layout version="0.1.0">
-
 	<customer_logged_out>
 		<reference name="head">
 			<block type="core/template" name="oneall.sociallogin.library" template="oneall/sociallogin/library.phtml" />
@@ -11,8 +10,7 @@
 				<name>css/oneall/sociallogin.css</name>
 			</action>
 		</reference>
-	</customer_logged_out>
-	
+	</customer_logged_out>	
 	<checkout_onepage_index>
 		<reference name="checkout.onepage.login.before">
 			<block type="oneall_sociallogin/login" name="oneall.sociallogin.login.checkout">
@@ -22,7 +20,6 @@
 			</block>
 		</reference>
 	</checkout_onepage_index>
-
 	<customer_account_login>
 		<reference name="content">
 			<block before="customer_form_login" type="oneall_sociallogin/login" name="oneall.sociallogin.login.login">
@@ -32,7 +29,6 @@
 			</block>
 		</reference>
 	</customer_account_login>
-
 	<customer_account_create>
 		<reference name="content">
 			<block before="customer_form_register" type="oneall_sociallogin/login" name="oneall.sociallogin.login.login">

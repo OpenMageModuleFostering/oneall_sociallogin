@@ -179,18 +179,19 @@ class OneAll_SocialLogin_Helper_Data extends Mage_Core_Helper_Abstract
 
 							// Create a new customer.
 							$customer = Mage::getModel ('customer/customer');
-							$customer->setData ('firstname', $data->user->identity->name->givenName);
-							$customer->setData ('lastname', $data->user->identity->name->familyName);
-							$customer->setData ('email', $email);
+							$customer->setFirstname ($data->user->identity->name->givenName);
+							$customer->setLastname ($data->user->identity->name->familyName);
+							$customer->setEmail ($email);
 							$customer->setSkipConfirmationIfEmail ($email);
-							$customer->setData ('password', $password);
+							$customer->setPassword ($password);
+							$customer->setPasswordConfirmation ($password);
 							$customer->setConfirmation ($password);
 
 							// Validate user details.
 							$errors = $customer->validate ();
 
 							// Do we have any errors?
-							if (is_array ($errors) && count ($errors))
+							if (is_array ($errors) && count ($errors) > 0)
 							{
 								Mage::getSingleton ('customer/session')->addError (implode (' ', $errors));
 								return false;

@@ -23,6 +23,8 @@
  * http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
  *
  */
+
+// OneAll Social Login Table
 class OneAll_SocialLogin_Model_Entity extends Mage_Core_Model_Abstract
 {
 	protected function _construct ()
