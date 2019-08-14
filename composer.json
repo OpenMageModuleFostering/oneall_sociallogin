@@ -1,0 +1,16 @@
+{
+    "name": "OpenMageModuleFostering/oneall_sociallogin",
+    "type": "magento-module",
+    "license": "GNU/GPL-2-or-later",
+    "homepage": "",
+    "description": "Social Login allows your customers to login and register with 25+ Social Networks.",
+    "authors": [
+    {
+        "name": "OneAll LLC",
+        "email": "support@oneall.com"
+    }
+],
+    "suggest": {
+        "magento-hackathon/magento-composer-installer": "*"
+    }
+}
