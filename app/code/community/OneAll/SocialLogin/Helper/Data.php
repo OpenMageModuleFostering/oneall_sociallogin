@@ -2,7 +2,7 @@
 
 /**
  * @package   	OneAll Social Login
- * @copyright 	Copyright 2014 http://www.oneall.com - All rights reserved.
+ * @copyright 	Copyright 2014-2016 http://www.oneall.com - All rights reserved
  * @license   	GNU/GPL 2 or later
  *
  * This program is free software; you can redistribute it and/or
@@ -24,9 +24,11 @@
  *
  */
 
-// Helper
 class OneAll_SocialLogin_Helper_Data extends Mage_Core_Helper_Abstract
 {
+	
+	const OA_USER_AGENT = 'SocialLogin/1.1.4 Magento/1.x (+http://www.oneall.com/)';
+	
 	/**
 	 * Generate a random email address.
 	 */
@@ -92,7 +94,7 @@ class OneAll_SocialLogin_Helper_Data extends Mage_Core_Helper_Abstract
 		$connection_token = Mage::app ()->getRequest ()->getParam ('connection_token');
 
 		// Callback Handler
-		if ($action == 'social_login' and ! empty ($connection_token))
+		if (strtolower ($action) == 'social_login' and ! empty ($connection_token))
 		{
 			// Read settings
 			$settings = array ();
@@ -140,7 +142,8 @@ class OneAll_SocialLogin_Helper_Data extends Mage_Core_Helper_Abstract
 						$identity_token = $data->user->identity->identity_token;
 
 						// Check if we have a user for this user_token.
-						$customer_id = Mage::getModel ('oneall_sociallogin/entity')->load ($user_token, 'user_token')->customer_id;
+						$oneall_entity = Mage::getModel ('oneall_sociallogin/entity')->load ($user_token, 'user_token');
+						$customer_id = $oneall_entity->customer_id;
 
 						// No user for this token, check if we have a user for this email.
 						if (empty ($customer_id))
@@ -153,7 +156,16 @@ class OneAll_SocialLogin_Helper_Data extends Mage_Core_Helper_Abstract
 								$customer_id = $customer->getId ();
 							}
 						}
-
+						// If the user does not exist anymore.
+						else if (! Mage::getModel ("customer/customer")->load ($customer_id)->getId ()) 
+						{
+							// Cleanup our table.
+							$oneall_entity->delete ();
+							
+							// Reset customer id
+							$customer_id = null;
+						}
+						
 						// This is a new customer.
 						if (empty ($customer_id))
 						{
@@ -176,10 +188,46 @@ class OneAll_SocialLogin_Helper_Data extends Mage_Core_Helper_Abstract
 							$password = $customer->generatePassword (8);
 
 							// Setup customer details.
-							$customer->setFirstname ($data->user->identity->name->givenName);
-							$customer->setLastname ($data->user->identity->name->familyName);
+							$first_name = 'unknown';
+							if (! empty ($data->user->identity->name->givenName))
+							{
+								$first_name = $data->user->identity->name->givenName;
+							}
+							else if (! empty ($data->user->identity->displayName))
+							{
+								$names = explode (' ', $data->user->identity->displayName);
+								$first_name = $names[0];
+							}
+							else if (! empty($data->user->identity->name->formatted))
+							{
+								$names = explode (' ', $data->user->identity->name->formatted);
+								$first_name = $names[0];
+							}
+							$last_name = 'unknown';
+							if (! empty ($data->user->identity->name->familyName))
+							{
+								$last_name = $data->user->identity->name->familyName;
+							}
+							else if (!empty ($data->user->identity->displayName))
+							{
+								$names = explode (' ', $data->user->identity->displayName);
+								if (! empty ($names[1]))
+								{
+									$last_name = $names[1];
+								}
+							}
+							else if (!empty($data->user->identity->name->formatted))
+							{
+								$names = explode (' ', $data->user->identity->name->formatted);
+								if (! empty ($names[1]))
+								{
+									$last_name = $names[1];
+								}
+							}
+							$customer->setFirstname ($first_name);
+							$customer->setLastname ($last_name);
 							$customer->setEmail ($email);
-							$customer->setSkipConfirmationIfEmail ($email);
+							//$customer->setSkipConfirmationIfEmail ($email);
 							$customer->setPassword ($password);
 							$customer->setPasswordConfirmation ($password);
 							$customer->setConfirmation ($password);
@@ -190,29 +238,46 @@ class OneAll_SocialLogin_Helper_Data extends Mage_Core_Helper_Abstract
 							// Do we have any errors?
 							if (is_array ($errors) && count ($errors) > 0)
 							{
-								// This would break it for Twitter users as they have no first/lastname
-								// Mage::getSingleton ('customer/session')->addError (implode (' ', $errors));
-								// return false;
+								Mage::getSingleton ('core/session')->addError (implode (' ', $errors));
+								return false;
 							}
 
 							// Save user.
 							$customer->save ();
-
-							// Send email.
-							if (! $email_is_random)
-							{
-								$customer->sendNewAccountEmail ();
-							}
-
-							// Log this user in.
 							$customer_id = $customer->getId ();
-
+							
 							// Save OneAll user_token.
 							$model = Mage::getModel ('oneall_sociallogin/entity');
 							$model->setData ('customer_id', $customer->getId ());
 							$model->setData ('user_token', $user_token);
 							$model->setData ('identity_token', $identity_token);
 							$model->save ();
+							
+							// Send email.
+							if (! $email_is_random)
+							{
+								// Site requires email confirmation.
+								if ($customer->isConfirmationRequired ())
+								{
+									$customer->sendNewAccountEmail ('confirmation');
+									Mage::getSingleton ('core/session')->addSuccess (
+											__ ('Account confirmation is required. Please, check your email for the confirmation link. To resend the confirmation email please <a href="%s">click here</a>.',
+											Mage::helper ('customer')->getEmailConfirmationUrl ($customer->getEmail ())));
+									return false;
+								}
+								else
+								{
+									$customer->sendNewAccountEmail ('registered');
+								}
+							}
+							// No email found in identity, but email confirmation required.
+							else if ($customer->isConfirmationRequired ())
+							{
+									Mage::getSingleton ('core/session')->addError (
+											__ ('Account confirmation by email is required. To provide an email address, <a href="%s">click here</a>.',
+											Mage::helper ('customer')->getEmailConfirmationUrl ('')));
+									return false;
+							}
 						}
 						// This is an existing customer.
 						else
@@ -234,7 +299,7 @@ class OneAll_SocialLogin_Helper_Data extends Mage_Core_Helper_Abstract
 						{
 							// Login
 							Mage::getSingleton ('customer/session')->loginById ($customer_id);
-
+							
 							// Done
 							return true;
 						}
@@ -386,7 +451,7 @@ class OneAll_SocialLogin_Helper_Data extends Mage_Core_Helper_Abstract
 		// Create HTTP request
 		$defaults = array (
 			'Host' => "Host: $host",
-			'User-Agent' => 'User-Agent: SocialLogin Magento (+http://www.oneall.com/)'
+			'User-Agent' => 'User-Agent: ' . self::OA_USER_AGENT
 		);
 
 		// Enable basic authentication
@@ -490,7 +555,7 @@ class OneAll_SocialLogin_Helper_Data extends Mage_Core_Helper_Abstract
 		curl_setopt ($curl, CURLOPT_RETURNTRANSFER, 1);
 		curl_setopt ($curl, CURLOPT_SSL_VERIFYPEER, 0);
 		curl_setopt ($curl, CURLOPT_SSL_VERIFYHOST, 0);
-		curl_setopt ($curl, CURLOPT_USERAGENT, 'SocialLogin Magento (+http://www.oneall.com/)');
+		curl_setopt ($curl, CURLOPT_USERAGENT, self::OA_USER_AGENT);
 
 		// Basic AUTH?
 		if (isset ($options ['api_key']) and isset ($options ['api_secret']))
